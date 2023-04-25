@@ -51,7 +51,7 @@ df_dividend = pd.DataFrame(dividend).T
 df_dividend = pd.DataFrame(dividend["historical"])
 df_ratio = pd.DataFrame(ratio)
 
-share_out_standing = share[0]["outstandingShares"]
+share_out_standing = df_income.loc["weightedAverageShsOut",0]
 st.write(f"Share Outstanding (流通股份) {share_out_standing:,}")
 
 total_debt = df_balance_sheet.loc["totalDebt", 0]
@@ -68,10 +68,10 @@ st.write(f"MarketCap (市值)：{market_capital:,}")
 ev = market_capital + total_debt - (cash_on_hand + restricted_cash)
 st.write(f"Enterprise Value (企業價值)：{ev:,}")
 
-ebit = df_income.loc["operatingIncome", 0] + df_income.loc["interestIncome", 0]
+ebit = df_income.loc["ebitda", 0]  - df_income.loc["depreciationAndAmortization", 0]
 st.write(f"EBIT (息稅前淨利)：{ebit:,}")
 
-ebitda = df_income.loc["ebitda", 0]
+ebitda = df_income.loc["ebitda", 0] 
 st.write(f"EBITDA (稅息折舊及攤銷前利潤) {ebitda:,}")
 
 if total_debt / ebitda >= 3:
@@ -95,7 +95,7 @@ st.write(f"Gross Margin (毛利) {gross_profit:,}")
 gross_profit_margin = gross_profit/revenue 
 st.write(f"Gross Margin Rate (毛利率) {round(gross_profit_margin*100, 2)}%") 
 
-general_and_administrative_expenses = df_income.loc["generalAndAdministrativeExpenses", 0] 
+general_and_administrative_expenses = df_income.loc["sellingGeneralAndAdministrativeExpenses", 0] 
 st.write(f"General and Administrative (總和行政費用) {general_and_administrative_expenses:,}") 
 
 operating_expenses = df_income.loc["operatingExpenses", 0] 
@@ -133,19 +133,22 @@ st.write(f"Growth Rate - Revenue (5年營收成長率) {round(growth_rate_revenu
 st.write(f"Growth Rate - Revenue (8年營收成長率) {round(growth_rate_revenue_8*100,2)}%")
 st.write(f"Growth Rate - Revenue (10年營收成長率) {round(growth_rate_revenue_10*100,2)}%")
 
-growth_rate_eps_5 = (eps/df_income.loc["epsdiluted",5])**(1/5)-1
-growth_rate_eps_8 = (eps/df_income.loc["epsdiluted",8])**(1/8)-1
-growth_rate_eps_10 = (eps/df_income.loc["epsdiluted",10])**(1/10)-1
-st.write(f"EPS (5年每股盈餘成長率) {round(growth_rate_eps_5*100,2)}%")
-st.write(f"EPS (8年每股盈餘成長率) {round(growth_rate_eps_8*100,2)}%")
-st.write(f"EPS (10年每股盈餘成長率) {round(growth_rate_eps_10*100,2)}%")
+if (eps >0 ):
+    growth_rate_eps_5 = (eps/df_income.loc["epsdiluted",5])**(1/5)-1
+    growth_rate_eps_8 = (eps/df_income.loc["epsdiluted",8])**(1/8)-1
+    growth_rate_eps_10 = (eps/df_income.loc["epsdiluted",10])**(1/10)-1
+    st.write(f"EPS (5年每股盈餘成長率) {round(growth_rate_eps_5*100,2)}%")
+    st.write(f"EPS (8年每股盈餘成長率) {round(growth_rate_eps_8*100,2)}%")
+    st.write(f"EPS (10年每股盈餘成長率) {round(growth_rate_eps_10*100,2)}%")
 
-growth_fcf_share_5 = (fcf_share/(df_cash_flow.loc["freeCashFlow",5]/df_income.loc["weightedAverageShsOut",5]))**(1/5)-1
-growth_fcf_share_8 = (fcf_share/(df_cash_flow.loc["freeCashFlow",8]/df_income.loc["weightedAverageShsOut",8]))**(1/8)-1
-growth_fcf_share_10 = (fcf_share/(df_cash_flow.loc["freeCashFlow",10]/df_income.loc["weightedAverageShsOut",10]))**(1/10)-1
-st.write(f"FCF/share (5年每股自由現金流成長率) {round(growth_fcf_share_5*100,2)}%")
-st.write(f"FCF/share (8年每股自由現金流成長率) {round(growth_fcf_share_8*100,2)}%")
-st.write(f"FCF/share (10年每股自由現金流成長率) {round(growth_fcf_share_10*100,2)}%")
+if(fcf_share>0):
+    growth_fcf_share_5 = (fcf_share/(df_cash_flow.loc["freeCashFlow",5]/df_income.loc["weightedAverageShsOut",5]))**(1/5)-1
+    growth_fcf_share_8 = (fcf_share/(df_cash_flow.loc["freeCashFlow",8]/df_income.loc["weightedAverageShsOut",8]))**(1/8)-1
+    growth_fcf_share_10 = (fcf_share/(df_cash_flow.loc["freeCashFlow",10]/df_income.loc["weightedAverageShsOut",10]))**(1/10)-1
+
+    st.write(f"FCF/share (5年每股自由現金流成長率) {round(growth_fcf_share_5*100,2)}%")
+    st.write(f"FCF/share (8年每股自由現金流成長率) {round(growth_fcf_share_8*100,2)}%")
+    st.write(f"FCF/share (10年每股自由現金流成長率) {round(growth_fcf_share_10*100,2)}%")
 
 headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36'}
 response = requests.get("https://ycharts.com/indicators/3_month_t_bill" ,headers=headers)
@@ -161,9 +164,13 @@ dividendsPaid = df_cash_flow.loc["dividendsPaid",0]
 st.write(f"Dividend payout(股利支出) {dividendsPaid:,}")
 print(f"30. dividendsPaid {dividendsPaid}")
 
-dividend_per_share =  df_dividend.loc[0,"dividend"]
-st.write(f"Dividend per share (每股股利) {dividend_per_share}")
-print(f"31. dividend_per_share {dividend_per_share}")
+if dividendsPaid > 0:
+    dividend_yield = dividendsPaid/share_out_standing
+    st.write(f"Dividend Yield (股利殖利率) {round(dividend_yield*100,2)}%")
+    print(f"30. dividend_yield {dividend_yield}")
+    dividend_per_share =  df_dividend.loc[0,"dividend"]
+    st.write(f"Dividend per share (每股股利) {dividend_per_share}")
+    print(f"31. dividend_per_share {dividend_per_share}")
 
 pe_5y = df_ratio.loc[:,"priceEarningsRatio"].head(20).describe()
 pe_10y = df_ratio.loc[:,"priceEarningsRatio"].head(40).describe()
